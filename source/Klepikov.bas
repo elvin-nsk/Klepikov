@@ -1,7 +1,7 @@
 Attribute VB_Name = "Klepikov"
 '===============================================================================
 '   Макрос          : Klepikov
-'   Версия          : 2024.04.08
+'   Версия          : 2024.05.15
 '   Сайты           : https://vk.com/elvin_macro
 '                     https://github.com/elvin-nsk
 '   Автор           : elvin-nsk (me@elvin.nsk.ru)
@@ -14,7 +14,7 @@ Option Explicit
 
 Public Const APP_NAME As String = "Klepikov"
 Public Const APP_DISPLAYNAME As String = APP_NAME
-Public Const APP_VERSION As String = "2024.04.08"
+Public Const APP_VERSION As String = "2024.05.15"
 
 '===============================================================================
 ' # Globals
@@ -70,7 +70,7 @@ Public Property Get CalcPlaces( _
         MAX_WIDTH - LeftOffset - RightOffset
     Dim ContoursDistance As Double: ContoursDistance = _
         ShapesDistance(Parts, SpreadDistance) _
-      + Parts.AllShapes.SizeWidth - Parts.Contour.SizeWidth
+      + Parts.ImageAndContour.SizeWidth - Parts.Contour.SizeWidth
     CalcPlaces = _
         VBA.Fix( _
             (MaxBoxWidth + ContoursDistance) _
@@ -84,11 +84,13 @@ Public Function Impose( _
            ) As ShapeRange
     With Parts
         Set Impose = CreateShapeRange
-        Dim Source As ShapeRange: Set Source = .AllShapes.Duplicate
+        Dim Source As ShapeRange: Set Source = .ImageAndContour.Duplicate
         Dim StartingX As Double, StartingY As Double
         StartingX = _
-            .AllShapes.RightX + .AllShapes.SizeWidth * 0.5 + Cfg.LeftOffset
-        StartingY = .AllShapes.BottomY - Cfg.BottomOffset
+            .ImageAndContour.RightX _
+          + .ImageAndContour.SizeWidth * 0.5 _
+          + Cfg.LeftOffset
+        StartingY = .ImageAndContour.BottomY - Cfg.BottomOffset
         Dim Count As Long: Count = _
             CalcPlaces( _
                 .Self, Cfg.LeftOffset, Cfg.RightOffset, Cfg.SpreadDistance _
@@ -127,11 +129,11 @@ End Function
  
 Private Property Get CheckParts(ByVal Parts As Parts) As Boolean
     With Parts
-        If Not .ContourOk Then
+        If Not .ContourValid Then
             VBA.MsgBox "Не найден контур", vbExclamation
             Exit Property
         End If
-        If Not .ImageOk Then
+        If Not .ImageValid Then
             VBA.MsgBox "Не найдено изображение", vbExclamation
             Exit Property
         End If
@@ -141,23 +143,21 @@ End Property
 
 Private Property Get GatherParts(ByVal Shapes As ShapeRange) As Parts
     With New Parts
+        Set GatherParts = .Self
+        
         Set .Contour = Shapes.Shapes.FindShape(Type:=cdrCurveShape)
-        .ContourOk = Not .Contour Is Nothing
-        If Not .ContourOk Then Exit Property
+        .ContourValid = Not .Contour Is Nothing
+        If Not .ContourValid Then Exit Property
         .ContourOffsetBottom = .Contour.BottomY - Shapes.BottomY
         .ContourOffsetLeft = .Contour.LeftX - Shapes.LeftX
         .ContourOffsetRight = Shapes.RightX - .Contour.RightX
         .ContourOffsetTop = Shapes.TopY - .Contour.TopY
-        Set .AllShapes = CreateShapeRange
-        .AllShapes.AddRange Shapes
+        Set .ImageAndContour = CreateShapeRange
+        .ImageAndContour.AddRange Shapes
         Set .Image = CreateShapeRange
         .Image.AddRange Shapes
         .Image.RemoveRange PackShapes(.Contour)
-        .ImageOk = (.Image.Count > 0)
-        .ImageOffsetBottom = .Image.BottomY - Shapes.BottomY
-        .ImageOffsetLeft = .Image.LeftX - Shapes.LeftX
-        
-        Set GatherParts = .Self
+        .ImageValid = (.Image.Count > 0)
     End With
 End Property
 
@@ -166,7 +166,7 @@ Private Property Get ShapesDistance( _
                          ByVal SpreadDistance As Double _
                      ) As Double
     ShapesDistance = _
-        Parts.Image.SizeWidth - Parts.AllShapes.SizeWidth + SpreadDistance
+        Parts.Image.SizeWidth - Parts.ImageAndContour.SizeWidth + SpreadDistance
 End Property
 
 Private Function ShowSpreadForCutter( _

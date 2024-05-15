@@ -12,17 +12,15 @@ Option Explicit
 
 '===============================================================================
 
-Public AllShapes As ShapeRange
+Public ImageAndContour As ShapeRange
 Public Contour As Shape
 Public ContourOffsetBottom As Double
 Public ContourOffsetLeft As Double
 Public ContourOffsetRight As Double
 Public ContourOffsetTop As Double
-Public ContourOk As Boolean
+Public ContourValid As Boolean
 Public Image As ShapeRange
-Public ImageOffsetBottom As Double
-Public ImageOffsetLeft As Double
-Public ImageOk As Boolean
+Public ImageValid As Boolean
 
 '===============================================================================
 

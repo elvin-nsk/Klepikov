@@ -14,10 +14,10 @@ Option Explicit
 
 Public ImageAndContour As ShapeRange
 Public Contour As Shape
-Public ContourOffsetBottom As Double
-Public ContourOffsetLeft As Double
-Public ContourOffsetRight As Double
-Public ContourOffsetTop As Double
+Public CropBoxOffsetBottom As Double
+Public CropBoxOffsetLeft As Double
+Public CropBoxOffsetRight As Double
+Public CropBoxOffsetTop As Double
 Public ContourValid As Boolean
 Public Image As ShapeRange
 Public ImageValid As Boolean

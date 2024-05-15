@@ -65,17 +65,22 @@ Public Property Get CalcPlaces( _
                          ByVal LeftOffset As Double, _
                          ByVal RightOffset As Double, _
                          ByVal SpreadDistance As Double _
-                     ) As Long
-    Dim MaxBoxWidth As Double: MaxBoxWidth = _
+                    ) As Long
+    Dim MaxUsableSheetWidth As Double: MaxUsableSheetWidth = _
         MAX_WIDTH - LeftOffset - RightOffset
-    Dim ContoursDistance As Double: ContoursDistance = _
-        ShapesDistance(Parts, SpreadDistance) _
-      + Parts.ImageAndContour.SizeWidth - Parts.Contour.SizeWidth
     CalcPlaces = _
         VBA.Fix( _
-            (MaxBoxWidth + ContoursDistance) _
-          / (Parts.Contour.SizeWidth + ContoursDistance) _
+            (MaxUsableSheetWidth + SpreadDistance) _
+          / (Parts.Image.SizeWidth + SpreadDistance) _
         )
+End Property
+
+Private Property Get ShapesDistance( _
+                         ByVal Parts As Parts, _
+                         ByVal SpreadDistance As Double _
+                     ) As Double
+    ShapesDistance = _
+        Parts.Image.SizeWidth - Parts.ImageAndContour.SizeWidth + SpreadDistance
 End Property
 
 Public Function Impose( _
@@ -84,47 +89,42 @@ Public Function Impose( _
            ) As ShapeRange
     With Parts
         Set Impose = CreateShapeRange
-        Dim Source As ShapeRange: Set Source = .ImageAndContour.Duplicate
-        Dim StartingX As Double, StartingY As Double
-        StartingX = _
-            .ImageAndContour.RightX _
-          + .ImageAndContour.SizeWidth * 0.5 _
-          + Cfg.LeftOffset
-        StartingY = .ImageAndContour.BottomY - Cfg.BottomOffset
+        Dim StartingOffsetX As Double: StartingOffsetX = _
+            .ImageAndContour.SizeWidth * 1.5
         Dim Count As Long: Count = _
             CalcPlaces( _
                 .Self, Cfg.LeftOffset, Cfg.RightOffset, Cfg.SpreadDistance _
             )
         Dim Distance  As Double: Distance = _
             ShapesDistance(.Self, Cfg.SpreadDistance)
+        
+        Dim Source As ShapeRange: Set Source = .ImageAndContour.Duplicate
         Source.LeftX = _
-            StartingX + Cfg.LeftOffset - .ContourOffsetLeft - Distance
-        Source.BottomY = _
-            StartingY + Cfg.BottomOffset - .ContourOffsetBottom
+            Source.LeftX + StartingOffsetX + Cfg.LeftOffset - .CropBoxOffsetLeft
         Dim i As Long
         For i = 1 To Count
             Impose.AddRange _
                 Source.Duplicate((i - 1) * (Source.SizeWidth + Distance))
         Next i
-        Impose.Add CreateImpositionRect(Impose, Parts, Cfg)
+        Impose.Add CreateSheetRect(Impose, Parts, Cfg)
         Source.Delete
     End With
 End Function
 
-Private Function CreateImpositionRect( _
+Private Function CreateSheetRect( _
                      ByVal Imposition As ShapeRange, _
                      ByVal Parts As Parts, _
                      ByVal Cfg As Config _
                  ) As Shape
-    Set CreateImpositionRect = _
+    Set CreateSheetRect = _
         ActiveLayer.CreateRectangle( _
-            Imposition.LeftX + Parts.ContourOffsetLeft - Cfg.LeftOffset, _
-            Imposition.TopY - Parts.ContourOffsetTop + Cfg.TopOffset, _
-            Imposition.RightX - Parts.ContourOffsetRight + Cfg.RightOffset, _
-            Imposition.BottomY + Parts.ContourOffsetBottom - Cfg.BottomOffset _
+            Imposition.LeftX + Parts.CropBoxOffsetLeft - Cfg.LeftOffset, _
+            Imposition.TopY + Parts.CropBoxOffsetTop + Cfg.TopOffset, _
+            Imposition.RightX + Parts.CropBoxOffsetRight + Cfg.RightOffset, _
+            Imposition.BottomY + Parts.CropBoxOffsetBottom - Cfg.BottomOffset _
         )
-    CreateImpositionRect.Name = "область раскладки"
-    CreateImpositionRect.OrderBackOf Imposition.FirstShape
+    CreateSheetRect.Name = "область раскладки"
+    CreateSheetRect.OrderBackOf GetBottomOrderShape(Imposition)
 End Function
  
 Private Property Get CheckParts(ByVal Parts As Parts) As Boolean
@@ -148,25 +148,19 @@ Private Property Get GatherParts(ByVal Shapes As ShapeRange) As Parts
         Set .Contour = Shapes.Shapes.FindShape(Type:=cdrCurveShape)
         .ContourValid = Not .Contour Is Nothing
         If Not .ContourValid Then Exit Property
-        .ContourOffsetBottom = .Contour.BottomY - Shapes.BottomY
-        .ContourOffsetLeft = .Contour.LeftX - Shapes.LeftX
-        .ContourOffsetRight = Shapes.RightX - .Contour.RightX
-        .ContourOffsetTop = Shapes.TopY - .Contour.TopY
         Set .ImageAndContour = CreateShapeRange
         .ImageAndContour.AddRange Shapes
         Set .Image = CreateShapeRange
         .Image.AddRange Shapes
         .Image.RemoveRange PackShapes(.Contour)
         .ImageValid = (.Image.Count > 0)
+        If Not .ImageValid Then Exit Property
+        
+        .CropBoxOffsetBottom = .Image.BottomY - Shapes.BottomY
+        .CropBoxOffsetLeft = .Image.LeftX - Shapes.LeftX
+        .CropBoxOffsetRight = .Image.RightX - Shapes.RightX
+        .CropBoxOffsetTop = .Image.TopY - Shapes.TopY
     End With
-End Property
-
-Private Property Get ShapesDistance( _
-                         ByVal Parts As Parts, _
-                         ByVal SpreadDistance As Double _
-                     ) As Double
-    ShapesDistance = _
-        Parts.Image.SizeWidth - Parts.ImageAndContour.SizeWidth + SpreadDistance
 End Property
 
 Private Function ShowSpreadForCutter( _

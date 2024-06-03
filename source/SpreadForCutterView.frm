@@ -1,6 +1,6 @@
 VERSION 5.00
 Begin {C62A69F0-16DC-11CE-9E98-00AA00574A4F} SpreadForCutterView 
-   ClientHeight    =   4650
+   ClientHeight    =   6120
    ClientLeft      =   45
    ClientTop       =   390
    ClientWidth     =   3630
@@ -26,6 +26,8 @@ Public LeftOffset As TextBoxHandler
 Public RightOffset As TextBoxHandler
 Public BottomOffset As TextBoxHandler
 Public SpreadDistance As TextBoxHandler
+Public MaxSheetWidth As TextBoxHandler
+Public AdditionalPlaces As TextBoxHandler
 
 Public IsOk As Boolean
 Public IsCancel As Boolean
@@ -46,6 +48,10 @@ Private Sub UserForm_Initialize()
         TextBoxHandler.New_(tbBottomOffset, TextBoxTypeDouble, MIN_VALUE)
     Set SpreadDistance = _
         TextBoxHandler.New_(tbSpreadDistance, TextBoxTypeDouble, MIN_VALUE)
+    Set MaxSheetWidth = _
+        TextBoxHandler.New_(tbMaxSheetWidth, TextBoxTypeDouble, 0)
+    Set AdditionalPlaces = _
+        TextBoxHandler.New_(tbAdditionalPlaces, TextBoxTypeLong, 0)
 End Sub
 
 '===============================================================================
@@ -75,6 +81,14 @@ Private Sub tbTopOffset_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shif
     RefreshPlaces
 End Sub
 
+Private Sub tbMaxSheetWidth_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    RefreshPlaces
+End Sub
+
+Private Sub tbAdditionalPlaces_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+    RefreshPlaces
+End Sub
+
 Private Sub btnOk_Click()
     FormОК
 End Sub
@@ -100,16 +114,24 @@ End Sub
 ' # Helpers
 
 Private Sub RefreshPlaces()
+    Dim Text As String: Text = "Количество мест: "
     Dim Count As Long: Count = _
-        CalcPlaces(Parts, LeftOffset, RightOffset, SpreadDistance)
+        CalcPlaces( _
+            Parts, LeftOffset, RightOffset, SpreadDistance, MaxSheetWidth _
+        )
     If Count < 0 Then Count = 0
-    lbCalcCount.Caption = _
-        "Количество мест: " & Count
-    If Count = 0 Then
+    Text = Text & Count
+    Dim Additional As Long: Additional = AdditionalPlaces.Value
+    Dim Total As Long: Total = Additional + Count
+    If AdditionalPlaces > 0 Then
+        Text = Text & " + " & Additional & " доп., всего " & Total
+    End If
+    If Total = 0 Then
         btnOk.Enabled = False
     Else
         btnOk.Enabled = True
     End If
+    lbCalcCount.Caption = Text
 End Sub
 
 '===============================================================================

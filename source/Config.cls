@@ -28,6 +28,9 @@ Public LeftOffset As Double
 Public RightOffset As Double
 Public BottomOffset As Double
 Public SpreadDistance As Double
+Public MaxSheetWidth As Double
+Public AdditionalPlaces As Long
+Public DeleteImages As Boolean
 
 '-------------------------------------------------------------------------------
 
@@ -43,6 +46,9 @@ Private Sub Assign(ByVal Action As iniAction)
         .KeyVar "RightOffset", RightOffset, 5
         .KeyVar "BottomOffset", BottomOffset, 5
         .KeyVar "SpreadDistance", SpreadDistance, 0
+        .KeyVar "MaxSheetWidth", MaxSheetWidth, 339
+        .KeyVar "AdditionalPlaces", AdditionalPlaces, 0
+        .KeyVar "DeleteImages", DeleteImages, False
     
     End With
     

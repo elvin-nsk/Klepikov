@@ -117,7 +117,10 @@ Private Function ImposeAll( _
                 StartingOffsetX = ImposeAll.RightX + ADDITIONAL_OFFSET
             End If
             ImposeAll.AddRange _
-                Impose(.Self, Cfg.AdditionalPlaces, Distance, StartingOffsetX, Cfg)
+                Impose( _
+                    .Self, Cfg.AdditionalPlaces, ADDITIONAL_SPREAD_DISTANCE, _
+                    StartingOffsetX, Cfg _
+                )
         End If
         If Cfg.DeleteImages Then _
             ImposeAll.Shapes.FindShapes(Type:=cdrBitmapShape).Delete

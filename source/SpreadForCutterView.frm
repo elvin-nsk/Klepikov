@@ -27,7 +27,7 @@ Public RightOffset As TextBoxHandler
 Public BottomOffset As TextBoxHandler
 Public SpreadDistance As TextBoxHandler
 Public MaxSheetWidth As TextBoxHandler
-Public AdditionalPlaces As TextBoxHandler
+Public PlacesCount As TextBoxHandler
 
 Public IsOk As Boolean
 Public IsCancel As Boolean
@@ -47,11 +47,11 @@ Private Sub UserForm_Initialize()
     Set BottomOffset = _
         TextBoxHandler.New_(tbBottomOffset, TextBoxTypeDouble, MIN_VALUE)
     Set SpreadDistance = _
-        TextBoxHandler.New_(tbSpreadDistance, TextBoxTypeDouble, MIN_VALUE)
+        TextBoxHandler.New_(tbSpreadDistance, TextBoxTypeDouble)
     Set MaxSheetWidth = _
         TextBoxHandler.New_(tbMaxSheetWidth, TextBoxTypeDouble, 0)
-    Set AdditionalPlaces = _
-        TextBoxHandler.New_(tbAdditionalPlaces, TextBoxTypeLong, 0)
+    Set PlacesCount = _
+        TextBoxHandler.New_(tbPlacesCount, TextBoxTypeLong, 0)
 End Sub
 
 '===============================================================================
@@ -85,7 +85,7 @@ Private Sub tbMaxSheetWidth_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal 
     RefreshPlaces
 End Sub
 
-Private Sub tbAdditionalPlaces_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
+Private Sub tbPlacesCount_KeyUp(ByVal KeyCode As MSForms.ReturnInteger, ByVal Shift As Integer)
     RefreshPlaces
 End Sub
 
@@ -114,23 +114,14 @@ End Sub
 ' # Helpers
 
 Private Sub RefreshPlaces()
-    Dim Text As String: Text = "Количество мест: "
-    Dim Count As Long: Count = _
+    Dim Places As CalculatedPlaces: Places = _
         CalcPlaces( _
-            Parts, LeftOffset, RightOffset, SpreadDistance, MaxSheetWidth _
+            PlacesCount, Parts, LeftOffset, RightOffset, _
+            SpreadDistance, MaxSheetWidth _
         )
-    If Count < 0 Then Count = 0
-    Text = Text & Count
-    Dim Additional As Long: Additional = AdditionalPlaces.Value
-    Dim Total As Long: Total = Additional + Count
-    If AdditionalPlaces > 0 Then
-        Text = Text & " + " & Additional & " доп., всего " & Total
-    End If
-    If Total = 0 Then
-        btnOk.Enabled = False
-    Else
-        btnOk.Enabled = True
-    End If
+    Dim Text As String: Text = Places.OnSheet
+    If Places.Additional > 0 Then _
+        Text = Text & " + " & Places.Additional & " доп."
     lbCalcCount.Caption = Text
 End Sub
 

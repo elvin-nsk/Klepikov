@@ -1,7 +1,7 @@
 Attribute VB_Name = "Klepikov"
 '===============================================================================
 '   Макрос          : Klepikov
-'   Версия          : 2024.06.03
+'   Версия          : 2024.06.05
 '   Сайты           : https://vk.com/elvin_macro
 '                     https://github.com/elvin-nsk
 '   Автор           : elvin-nsk (me@elvin.nsk.ru)
@@ -14,10 +14,15 @@ Option Explicit
 
 Public Const APP_NAME As String = "Klepikov"
 Public Const APP_DISPLAYNAME As String = APP_NAME
-Public Const APP_VERSION As String = "2024.06.03"
+Public Const APP_VERSION As String = "2024.06.05"
 
 '===============================================================================
 ' # Globals
+
+Public Type CalculatedPlaces
+    OnSheet As Long
+    Additional As Long
+End Type
 
 Public Const SHAPES_WIDTH_TO_OFFSET_MULT As Double = 1.5
 Public Const ADDITIONAL_OFFSET As Double = 80
@@ -63,19 +68,25 @@ End Sub
 ' # Helpers
 
 Public Property Get CalcPlaces( _
+                         ByVal Total As Long, _
                          ByVal Parts As Parts, _
                          ByVal LeftOffset As Double, _
                          ByVal RightOffset As Double, _
                          ByVal SpreadDistance As Double, _
                          ByVal MaxSheetWidth As Double _
-                    ) As Long
+                    ) As CalculatedPlaces
     Dim MaxUsableSheetWidth As Double: MaxUsableSheetWidth = _
         MaxSheetWidth - LeftOffset - RightOffset
-    CalcPlaces = _
+    CalcPlaces.OnSheet = _
         VBA.Fix( _
             (MaxUsableSheetWidth + SpreadDistance) _
           / (Parts.Image.SizeWidth + SpreadDistance) _
         )
+    If Total < CalcPlaces.OnSheet Then
+        CalcPlaces.OnSheet = Total
+    Else
+        CalcPlaces.Additional = Total - CalcPlaces.OnSheet
+    End If
 End Property
 
 Private Property Get ShapesDistance( _
@@ -92,9 +103,9 @@ Private Function ImposeAll( _
                  ) As ShapeRange
     With Parts
         Set ImposeAll = CreateShapeRange
-        Dim Places As Long: Places = _
+        Dim Places As CalculatedPlaces: Places = _
             CalcPlaces( _
-                .Self, Cfg.LeftOffset, Cfg.RightOffset, _
+                Cfg.PlacesCount, .Self, Cfg.LeftOffset, Cfg.RightOffset, _
                 Cfg.SpreadDistance, Cfg.MaxSheetWidth _
             )
         Dim Distance As Double: Distance = _
@@ -103,12 +114,14 @@ Private Function ImposeAll( _
             .ImageAndContour.SizeWidth * SHAPES_WIDTH_TO_OFFSET_MULT _
           + .ImageAndContour.LeftX + StartingOffsetX _
           + Cfg.LeftOffset - .CropBoxOffsetLeft
-        If Places > 0 Then
+          
+        If Places.OnSheet > 0 Then
             ImposeAll.AddRange _
-                Impose(.Self, Places, Distance, StartingOffsetX, Cfg)
+                Impose(.Self, Places.OnSheet, Distance, StartingOffsetX, Cfg)
             ImposeAll.Add CreateSheetRect(ImposeAll, .Self, Cfg)
         End If
-        If Cfg.AdditionalPlaces > 0 Then
+        
+        If Places.Additional > 0 Then
             If ImposeAll.Count = 0 Then
                 StartingOffsetX = _
                     .ImageAndContour.RightX _
@@ -118,10 +131,11 @@ Private Function ImposeAll( _
             End If
             ImposeAll.AddRange _
                 Impose( _
-                    .Self, Cfg.AdditionalPlaces, ADDITIONAL_SPREAD_DISTANCE, _
+                    .Self, Places.Additional, ADDITIONAL_SPREAD_DISTANCE, _
                     StartingOffsetX, Cfg _
                 )
         End If
+        
         If Cfg.DeleteImages Then _
             ImposeAll.Shapes.FindShapes(Type:=cdrBitmapShape).Delete
     End With
@@ -210,7 +224,7 @@ Private Function ShowSpreadForCutter( _
         .BottomOffset = Cfg.BottomOffset
         .SpreadDistance = Cfg.SpreadDistance
         .MaxSheetWidth = Cfg.MaxSheetWidth
-        .AdditionalPlaces = Cfg.AdditionalPlaces
+        .PlacesCount = Cfg.PlacesCount
         .cbDeleteImages = Cfg.DeleteImages
         
         'для вызова калькулятора из формы
@@ -224,7 +238,7 @@ Private Function ShowSpreadForCutter( _
         Cfg.BottomOffset = .BottomOffset
         Cfg.SpreadDistance = .SpreadDistance
         Cfg.MaxSheetWidth = .MaxSheetWidth
-        Cfg.AdditionalPlaces = .AdditionalPlaces
+        Cfg.PlacesCount = .PlacesCount
         Cfg.DeleteImages = .cbDeleteImages
         
         ShowSpreadForCutter = .IsOk
